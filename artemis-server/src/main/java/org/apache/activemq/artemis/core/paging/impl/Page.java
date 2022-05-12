@@ -39,11 +39,12 @@ import org.apache.activemq.artemis.core.server.LargeServerMessage;
 import org.apache.activemq.artemis.utils.DataConstants;
 import org.apache.activemq.artemis.utils.Env;
 import org.apache.activemq.artemis.utils.collections.ConcurrentHashSet;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Page implements Comparable<Page> {
 
-   private static final Logger logger = Logger.getLogger(Page.class);
+   private static final Logger logger = LoggerFactory.getLogger(Page.class);
 
    public static final int SIZE_RECORD = DataConstants.SIZE_BYTE + DataConstants.SIZE_INT + DataConstants.SIZE_BYTE;
 
@@ -214,7 +215,7 @@ public final class Page implements Comparable<Page> {
                      msg.initMessage(storageManager);
                      assert validateLargeMessageStorageManager(msg);
                      if (logger.isTraceEnabled()) {
-                        logger.tracef("Reading message %s on pageId=%d for address=%s", msg, pageId, storeName);
+                        logger.trace("Reading message {} on pageId={} for address={}", msg, pageId, storeName);
                      }
                      readProcessedBytes = nextPosition;
                      lastReadMessageNumber = targetMessageNumber;
@@ -254,7 +255,7 @@ public final class Page implements Comparable<Page> {
 
    public synchronized List<PagedMessage> read(StorageManager storage, boolean onlyLargeMessages) throws Exception {
       if (logger.isDebugEnabled()) {
-         logger.debugf("reading page %d on address = %s onlyLargeMessages = %b",
+         logger.debug("reading page {} on address = {} onlyLargeMessages = {}",
             new Object[] {pageId, storeName, onlyLargeMessages});
       }
 
@@ -413,7 +414,7 @@ public final class Page implements Comparable<Page> {
                            msg.initMessage(storage);
                            assert validateLargeMessageStorageManager(msg);
                            if (logger.isTraceEnabled()) {
-                              logger.tracef("Reading message %s on pageId=%d for address=%s", msg, pageId, storeName);
+                              logger.trace("Reading message {} on pageId={} for address={}", msg, pageId, storeName);
                            }
                            messages.add(msg);
                         }
@@ -438,7 +439,7 @@ public final class Page implements Comparable<Page> {
          }
          //ignore incomplete messages at the end of the file
          if (logger.isTraceEnabled()) {
-            logger.tracef("%s has %d bytes of unknown data at position = %d", file.getFileName(), remainingBytes, processedBytes);
+            logger.trace("{} has {} bytes of unknown data at position = {}", file.getFileName(), remainingBytes, processedBytes);
          }
          return totalMessageCount;
       } finally {
@@ -540,7 +541,7 @@ public final class Page implements Comparable<Page> {
       }
 
       if (logger.isDebugEnabled()) {
-         logger.debugf("Deleting pageNr=%d on store %s", pageId, storeName);
+         logger.debug("Deleting pageNr={} on store {}", pageId, storeName);
       }
 
       final List<Long> largeMessageIds;

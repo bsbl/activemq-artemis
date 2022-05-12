@@ -62,11 +62,12 @@ import org.apache.activemq.artemis.core.server.management.ManagementService;
 import org.apache.activemq.artemis.core.transaction.ResourceManager;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.core.transaction.impl.TransactionImpl;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostOfficeJournalLoader implements JournalLoader {
 
-   private static final Logger logger = Logger.getLogger(PostOfficeJournalLoader.class);
+   private static final Logger logger = LoggerFactory.getLogger(PostOfficeJournalLoader.class);
 
    protected final PostOffice postOffice;
    protected final PagingManager pagingManager;

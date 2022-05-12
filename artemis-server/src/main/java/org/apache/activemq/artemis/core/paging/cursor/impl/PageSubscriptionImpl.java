@@ -64,13 +64,14 @@ import org.apache.activemq.artemis.core.transaction.impl.TransactionImpl;
 import org.apache.activemq.artemis.utils.actors.ArtemisExecutor;
 import org.apache.activemq.artemis.utils.collections.ConcurrentHashSet;
 import org.apache.activemq.artemis.utils.collections.ConcurrentLongHashMap;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.activemq.artemis.core.server.impl.QueueImpl.DELIVERY_TIMEOUT;
 
 public final class PageSubscriptionImpl implements PageSubscription {
 
-   private static final Logger logger = Logger.getLogger(PageSubscriptionImpl.class);
+   private static final Logger logger = LoggerFactory.getLogger(PageSubscriptionImpl.class);
 
    private static final PagedReference dummyPagedRef = new PagedReferenceImpl(null, null, null);
 

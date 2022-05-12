@@ -22,12 +22,13 @@ import org.apache.activemq.artemis.core.paging.cursor.NonExistentPage;
 import org.apache.activemq.artemis.core.paging.cursor.PageCache;
 import org.apache.activemq.artemis.core.paging.cursor.PagePosition;
 import org.apache.activemq.artemis.core.paging.impl.Page;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.activemq.artemis.utils.Preconditions.checkNotNull;
 
 public class PageReader implements PageCache {
-   private static final Logger logger = Logger.getLogger(PageReader.class);
+   private static final Logger logger = LoggerFactory.getLogger(PageReader.class);
 
    private final Page page;
    private final int numberOfMessages;

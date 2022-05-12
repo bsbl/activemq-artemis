@@ -20,14 +20,15 @@ import org.apache.activemq.artemis.core.paging.PagedMessage;
 import org.apache.activemq.artemis.core.paging.cursor.LivePageCache;
 import org.apache.activemq.artemis.core.paging.cursor.PagePosition;
 import org.apache.activemq.artemis.utils.collections.ConcurrentAppendOnlyChunkedList;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the same as PageCache, however this is for the page that's being currently written.
  */
 public final class LivePageCacheImpl implements LivePageCache {
 
-   private static final Logger logger = Logger.getLogger(LivePageCacheImpl.class);
+   private static final Logger logger = LoggerFactory.getLogger(LivePageCacheImpl.class);
 
    private static final int CHUNK_SIZE = 32;
 
