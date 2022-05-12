@@ -94,7 +94,7 @@ public final class LivePageCacheImpl implements LivePageCache {
 
    @Override
    public void close() {
-      logger.tracef("Closing %s", this);
+      logger.trace("Closing {}", this);
       this.isLive = false;
    }
 

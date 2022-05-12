@@ -836,11 +836,11 @@ public final class PageSubscriptionImpl implements PageSubscription {
 
    @Override
    public boolean isComplete(long page) {
-      logger.tracef("%s isComplete %d", this, page);
+      logger.trace("{} isComplete {}", this, page);
       synchronized (consumedPages) {
          if (empty && consumedPages.isEmpty()) {
             if (logger.isTraceEnabled()) {
-               logger.tracef("isComplete(%d)::Subscription %s has empty=%s, consumedPages.isEmpty=%s", page, this, empty, consumedPages.isEmpty());
+               logger.trace("isComplete({})::Subscription {} has empty={}, consumedPages.isEmpty={}", page, this, empty, consumedPages.isEmpty());
             }
             return true;
          }
@@ -848,12 +848,12 @@ public final class PageSubscriptionImpl implements PageSubscription {
          PageCursorInfo info = consumedPages.get(page);
 
          if (info == null && empty) {
-            logger.tracef("isComplete(%d)::::Couldn't find info and it is empty", page);
+            logger.trace("isComplete({})::::Couldn't find info and it is empty", page);
             return true;
          } else {
             boolean isDone = info != null && info.isDone();
             if (logger.isTraceEnabled()) {
-               logger.tracef("isComplete(%d):: found info=%s, isDone=%s", (Object) page, info, isDone);
+               logger.trace("isComplete({}):: found info={}, isDone={}", (Object) page, info, isDone);
             }
             return isDone;
          }
@@ -978,7 +978,7 @@ public final class PageSubscriptionImpl implements PageSubscription {
 
    @Override
    public void onDeletePage(Page deletedPage) throws Exception {
-      logger.tracef("removing page %s", deletedPage);
+      logger.trace("removing page {}", deletedPage);
       PageCursorInfo info;
       synchronized (consumedPages) {
          info = consumedPages.remove(Long.valueOf(deletedPage.getPageId()));
@@ -1123,7 +1123,7 @@ public final class PageSubscriptionImpl implements PageSubscription {
             position.setPersistentSize(size);
          }
 
-         logger.tracef("InstallTXCallback looking up pagePosition %s, result=%s", position, info);
+         logger.trace("InstallTXCallback looking up pagePosition {}, result={}", position, info);
 
          info.remove(position);
 
@@ -1234,7 +1234,7 @@ public final class PageSubscriptionImpl implements PageSubscription {
          this.pageId = pageId;
          wasLive = false;
          this.numberOfMessages = numberOfMessages;
-         logger.tracef("Created PageCursorInfo for pageNr=%d, numberOfMessages=%d, not live", pageId, numberOfMessages);
+         logger.trace("Created PageCursorInfo for pageNr={}, numberOfMessages={}, not live", pageId, numberOfMessages);
       }
 
       private PageCursorInfo(final PageCache cache) {
@@ -1246,11 +1246,11 @@ public final class PageSubscriptionImpl implements PageSubscription {
             final int numberOfMessages = cache.getNumberOfMessages();
             assert numberOfMessages >= 0;
             this.numberOfMessages = numberOfMessages;
-            logger.tracef("Created PageCursorInfo for pageNr=%d, numberOfMessages=%d,  cache=%s, not live", pageId, this.numberOfMessages, cache);
+            logger.trace("Created PageCursorInfo for pageNr={}, numberOfMessages={},  cache={}, not live", pageId, this.numberOfMessages, cache);
          } else {
             //given that is live, the exact value must be get directly from cache
             this.numberOfMessages = -1;
-            logger.tracef("Created PageCursorInfo for pageNr=%d, cache=%s, live", pageId, cache);
+            logger.trace("Created PageCursorInfo for pageNr={}, cache={}, live", pageId, cache);
          }
       }
 
@@ -1258,7 +1258,7 @@ public final class PageSubscriptionImpl implements PageSubscription {
        * @param completePage
        */
       public void setCompleteInfo(final PagePosition completePage) {
-         logger.tracef("Setting up complete page %s on cursor %s on subscription %s", completePage, this, PageSubscriptionImpl.this);
+         logger.trace("Setting up complete page {} on cursor {} on subscription {}", completePage, this, PageSubscriptionImpl.this);
          this.completePage = completePage;
       }
 
