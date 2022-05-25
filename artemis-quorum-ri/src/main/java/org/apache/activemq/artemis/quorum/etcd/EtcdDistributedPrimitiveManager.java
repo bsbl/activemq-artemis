@@ -45,35 +45,7 @@ import org.jboss.logging.Logger;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
-/**
- * https://github.com/etcd-io/etcd/blob/main/Documentation/dev-guide/apispec/swagger/rpc.swagger.json
- *
- * Structure in Etcd:
- * /activemq/$artemis-broker-instance/members/$id
- * /activemq/$artemis-broker-instance/leader
- *
- * 1. Create a lease. The lease is a kind of unique open channel between the etcd client and etcd
- * 2. Register the member unique ID (/activemq/$artemis-broker-instance/members/$id)
- * 3. Try to acquire the leader role using compareAndSet(
- *      key = /activemq/$artemis-broker-instance/leader,
- *      old = null,
- *      new = unique ID)
- *    If succeeded, current node is the leader
- *    Else current node is a slave
- * 4. Watch for changes on the leader key: /activemq/$artemis-broker-instance/members/$id
- *
- *
- * etcd/lease $ttl.seconds
- *
- * Etcd implementation relies on:
- * - /lease/grant', {'ID': String.valueOf(int64), 'TTL': int64}: create a lease which expires if the
- *   keepalive is not received within the specified TTL
- * - /lease/keepalive, {'ID': String.valueOf(int64)}
- * - /watch, {'create_request':{'filters':{'key': clusterPrefix, 'range_end':}}}
- * - /kv/range,
- * - /kv/txn, {'compare': [compare], 'success': [{'request_delete_range': request}]}
- */
-public class EtcdDistributedPrimitiveManager implements DistributedPrimitiveManager /*, EtcdLeaderElection.ElectionListener*/ {
+public class EtcdDistributedPrimitiveManager implements DistributedPrimitiveManager {
 
    private static final Logger logger = Logger.getLogger(EtcdDistributedPrimitiveManager.class);
    private PersistentLease persistentLease;
