@@ -141,8 +141,6 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    private static final AtomicLongFieldUpdater<QueueImpl> consumerRemovedTimestampUpdater = AtomicLongFieldUpdater.newUpdater(QueueImpl.class, "consumerRemovedTimestamp");
    private static final AtomicReferenceFieldUpdater<QueueImpl, Filter> filterUpdater = AtomicReferenceFieldUpdater.newUpdater(QueueImpl.class, Filter.class, "filter");
 
-   public static final int REDISTRIBUTOR_BATCH_SIZE = 100;
-
    public static final int NUM_PRIORITIES = 10;
 
    public static final int MAX_DELIVERIES_IN_LOOP = 1000;
@@ -294,8 +292,6 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    private volatile boolean supportsDirectDeliver = false;
 
    private AddressSettingsRepositoryListener addressSettingsRepositoryListener;
-
-   private final ExpiryScanner expiryScanner = new ExpiryScanner();
 
    private final ReusableLatch deliveriesInTransit = new ReusableLatch(0);
 
@@ -1534,7 +1530,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
             redistributorFuture = scheduledExecutor.schedule(dar, delay, TimeUnit.MILLISECONDS);
          }
       } else {
-         internalAddRedistributor(executor);
+         internalAddRedistributor();
       }
    }
 
@@ -2361,13 +2357,10 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       }
 
 
-      if (!queueDestroyed && expiryScanner.scannerRunning.get() == 0) {
-         if (expiryScanner.scannerRunning.incrementAndGet() == 1) {
-            expiryScanner.doneCallback = done;
-         }
-         getExecutor().execute(expiryScanner);
+      if (!queueDestroyed) {
+         getExecutor().execute(new ExpiryScanner(done));
       } else {
-         // expire is already happening on this queue, move on!
+         // queue is destroyed, move on
          if (done != null) {
             done.run();
          }
@@ -2388,24 +2381,25 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    class ExpiryScanner implements Runnable {
 
-      public Runnable doneCallback;
-      public AtomicInteger scannerRunning = new AtomicInteger(0);
+      private final Runnable doneCallback;
+
+      ExpiryScanner(Runnable doneCallback) {
+         this.doneCallback = doneCallback;
+      }
+
       LinkedListIterator<MessageReference> iter = null;
 
       @Override
       public void run() {
-
          boolean expired = false;
          boolean hasElements = false;
          int elementsIterated = 0;
          int elementsExpired = 0;
 
+         boolean rescheduled = false;
+
          LinkedList<MessageReference> expiredMessages = new LinkedList<>();
          synchronized (QueueImpl.this) {
-            if (queueDestroyed) {
-               return;
-            }
-
             if (logger.isDebugEnabled()) {
                logger.debug("Scanning for expires on " + QueueImpl.this.getName());
             }
@@ -2422,7 +2416,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
             }
 
             try {
-               while (postOffice.isStarted() && iter.hasNext()) {
+               while (!queueDestroyed && postOffice.isStarted() && iter.hasNext()) {
                   hasElements = true;
                   MessageReference ref = iter.next();
                   if (ref.getMessage().isExpired()) {
@@ -2433,14 +2427,16 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                      iter.remove();
                   }
                   if (++elementsIterated >= MAX_DELIVERIES_IN_LOOP) {
-                     logger.debug("Breaking loop of expiring");
-                     scannerRunning.incrementAndGet();
+                     logger.debugf("Expiry Scanner on %s ran for %s iteration, scheduling a new one", QueueImpl.this.getName(), elementsIterated);
+                     rescheduled = true;
                      getExecutor().execute(this);
                      break;
                   }
                }
             } finally {
-               if (scannerRunning.decrementAndGet() == 0) {
+               if (!rescheduled) {
+                  logger.debugf("Scanning for expires on %s done", QueueImpl.this.getName());
+
                   if (server.hasBrokerQueuePlugins()) {
                      try {
                         server.callBrokerQueuePlugins((p) -> p.afterExpiryScan(QueueImpl.this));
@@ -2454,12 +2450,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
                   if (doneCallback != null) {
                      doneCallback.run();
-                     doneCallback = null;
                   }
                }
-
-               logger.debug("Scanning for expires on " + QueueImpl.this.getName() + " done");
-
             }
          }
 
@@ -3263,12 +3255,12 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       return messageReferences.removeWithID(serverID, id);
    }
 
-   private void internalAddRedistributor(final ArtemisExecutor executor) {
+   private void internalAddRedistributor() {
       if (redistributor == null && (consumers.isEmpty() || hasUnMatchedPending)) {
          if (logger.isTraceEnabled()) {
             logger.trace("QueueImpl::Adding redistributor on queue " + this.toString());
          }
-         redistributor = new ConsumerHolder(new Redistributor(this, storageManager, postOffice, executor, QueueImpl.REDISTRIBUTOR_BATCH_SIZE));
+         redistributor = new ConsumerHolder(new Redistributor(this, storageManager, postOffice));
          redistributor.consumer.start();
          consumers.add(redistributor);
          hasUnMatchedPending = false;
@@ -4136,7 +4128,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       @Override
       public void run() {
          synchronized (QueueImpl.this) {
-            internalAddRedistributor(executor1);
+            internalAddRedistributor();
 
             clearRedistributorFuture();
          }

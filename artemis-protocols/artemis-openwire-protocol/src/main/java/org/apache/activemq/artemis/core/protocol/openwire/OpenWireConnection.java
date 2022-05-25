@@ -66,7 +66,8 @@ import org.apache.activemq.artemis.core.security.SecurityAuth;
 import org.apache.activemq.artemis.core.server.ActiveMQMessageBundle;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
-import org.apache.activemq.artemis.core.server.BindingQueryResult;
+import org.apache.activemq.artemis.core.server.AddressQueryResult;
+import org.apache.activemq.artemis.core.server.QueueQueryResult;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
 import org.apache.activemq.artemis.core.server.ServerSession;
@@ -367,7 +368,7 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
                setLastCommand(command);
                response = command.visit(commandProcessorInstance);
             } catch (Exception e) {
-               ActiveMQServerLogger.LOGGER.warn("Errors occurred during the buffering operation ", e);
+               ActiveMQServerLogger.LOGGER.warn(e.getMessage(), e);
                if (responseRequired) {
                   response = convertException(e);
                }
@@ -846,7 +847,6 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
       context.setClientMaster(info.isClientMaster());
       context.setFaultTolerant(info.isFaultTolerant());
       context.setReconnect(true);
-      context.incRefCount();
    }
 
    /**
@@ -1150,8 +1150,10 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
    private void validateDestination(ActiveMQDestination destination) throws Exception {
       if (destination.isQueue()) {
          SimpleString physicalName = new SimpleString(destination.getPhysicalName());
-         BindingQueryResult result = server.bindingQuery(physicalName);
-         if (!result.isExists() && !result.isAutoCreateQueues()) {
+         QueueQueryResult queue = server.queueQuery(physicalName);
+         AddressQueryResult address = server.addressQuery(physicalName);
+
+         if (!address.isExists() && !queue.isAutoCreateQueues()) {
             throw ActiveMQMessageBundle.BUNDLE.noSuchQueue(physicalName);
          }
       }
@@ -1681,6 +1683,9 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
          } catch (Exception e) {
             if (tx != null) {
                tx.markAsRollbackOnly(new ActiveMQException(e.getMessage()));
+            } else if (e instanceof ActiveMQNonExistentQueueException && producerInfo.getDestination() == null) {
+               //Send exception for non transacted anonymous producers using an incorrect destination
+               sendException(e);
             }
             throw e;
          } finally {

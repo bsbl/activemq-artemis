@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttTopicSubscription;
 import org.apache.activemq.artemis.api.core.Pair;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
@@ -75,6 +76,8 @@ public class MQTTSessionState {
 
    private long willDelayInterval = 0;
 
+   private List<? extends MqttProperties.MqttProperty> willUserProperties;
+
    private boolean willSent = false;
 
    private boolean failed = false;
@@ -116,14 +119,7 @@ public class MQTTSessionState {
       willRetain = false;
       willTopic = null;
       clientMaxPacketSize = 0;
-      if (clientTopicAliases != null) {
-         clientTopicAliases.clear();
-         clientTopicAliases = null;
-      }
-      if (serverTopicAliases != null) {
-         serverTopicAliases.clear();
-         serverTopicAliases = null;
-      }
+      clearTopicAliases();
       clientTopicAliasMaximum = 0;
    }
 
@@ -278,6 +274,14 @@ public class MQTTSessionState {
       this.willDelayInterval = willDelayInterval;
    }
 
+   public void setWillUserProperties(List<? extends MqttProperties.MqttProperty> userProperties) {
+      this.willUserProperties = userProperties;
+   }
+
+   public List<? extends MqttProperties.MqttProperty> getWillUserProperties() {
+      return willUserProperties;
+   }
+
    public boolean isWillSent() {
       return willSent;
    }
@@ -353,6 +357,17 @@ public class MQTTSessionState {
          if (addressMap != null) {
             addressMap.remove(info.getServerMessageId());
          }
+      }
+   }
+
+   public void clearTopicAliases() {
+      if (clientTopicAliases != null) {
+         clientTopicAliases.clear();
+         clientTopicAliases = null;
+      }
+      if (serverTopicAliases != null) {
+         serverTopicAliases.clear();
+         serverTopicAliases = null;
       }
    }
 

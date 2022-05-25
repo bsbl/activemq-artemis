@@ -18,6 +18,7 @@
 package org.apache.activemq.artemis.core.protocol.mqtt;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.CaseFormat;
@@ -76,7 +77,15 @@ public class MQTTUtil {
 
    public static final boolean SESSION_AUTO_CREATE_QUEUE = false;
 
-   public static final String MQTT_RETAIN_ADDRESS_PREFIX = "$sys.mqtt.retain.";
+   public static final char DOLLAR = '$';
+
+   public static final char HASH = '#';
+
+   public static final char PLUS = '+';
+
+   public static final char SLASH = '/';
+
+   public static final String MQTT_RETAIN_ADDRESS_PREFIX = DOLLAR + "sys.mqtt.retain.";
 
    public static final SimpleString MQTT_QOS_LEVEL_KEY = SimpleString.toSimpleString("mqtt.qos.level");
 
@@ -100,9 +109,9 @@ public class MQTTUtil {
 
    public static final SimpleString MQTT_CONTENT_TYPE_KEY = SimpleString.toSimpleString("mqtt.content.type");
 
-   public static final String MANAGEMENT_QUEUE_PREFIX = "$sys.mqtt.queue.qos2.";
+   public static final String MANAGEMENT_QUEUE_PREFIX = DOLLAR + "sys.mqtt.queue.qos2.";
 
-   public static final String SHARED_SUBSCRIPTION_PREFIX = "$share/";
+   public static final String SHARED_SUBSCRIPTION_PREFIX = DOLLAR + "share/";
 
    public static final long FOUR_BYTE_INT_MAX = Long.decode("0xFFFFFFFF"); // 4_294_967_295
 
@@ -153,9 +162,9 @@ public class MQTTUtil {
 
    public static class MQTTWildcardConfiguration extends WildcardConfiguration {
       public MQTTWildcardConfiguration() {
-         setDelimiter('/');
-         setSingleWord('+');
-         setAnyWords('#');
+         setDelimiter(SLASH);
+         setSingleWord(PLUS);
+         setAnyWords(HASH);
       }
    }
 
@@ -243,7 +252,7 @@ public class MQTTUtil {
       return message;
    }
 
-   public static void logMessage(MQTTSessionState state, MqttMessage message, boolean inbound) {
+   public static void logMessage(MQTTSessionState state, MqttMessage message, boolean inbound, MQTTVersion version) {
       if (logger.isTraceEnabled()) {
          StringBuilder log = new StringBuilder("MQTT(");
 
@@ -279,8 +288,19 @@ public class MQTTUtil {
                      .append(", remainingLength=" + message.fixedHeader().remainingLength());
                   for (MqttProperties.MqttProperty property : ((MqttPublishMessage)message).variableHeader().properties().listAll()) {
                      Object value = property.value();
-                     if (value != null && value instanceof byte[]) {
-                        value = new String((byte[]) value, StandardCharsets.UTF_8);
+                     if (value != null) {
+                        if (value instanceof byte[]) {
+                           value = new String((byte[]) value, StandardCharsets.UTF_8);
+                        } else if (value instanceof ArrayList && ((ArrayList)value).size() > 0 && ((ArrayList)value).get(0) instanceof MqttProperties.StringPair) {
+                           StringBuilder userProperties = new StringBuilder();
+                           userProperties.append("[");
+                           for (MqttProperties.StringPair pair : (ArrayList<MqttProperties.StringPair>) value) {
+                              userProperties.append(pair.key).append(": ").append(pair.value).append(", ");
+                           }
+                           userProperties.delete(userProperties.length() - 2, userProperties.length());
+                           userProperties.append("]");
+                           value = userProperties.toString();
+                        }
                      }
                      log.append(", " + formatCase(MqttPropertyType.valueOf(property.propertyId()).name()) + "=" + value);
                   }
@@ -316,7 +336,11 @@ public class MQTTUtil {
                   break;
                case SUBSCRIBE:
                   for (MqttTopicSubscription sub : ((MqttSubscribeMessage) message).payload().topicSubscriptions()) {
-                     log.append("\n\t" + sub.topicName() + " : " + sub.qualityOfService());
+                     log.append("\n\ttopic: ").append(sub.topicName())
+                        .append(", qos: ").append(sub.qualityOfService())
+                        .append(", nolocal: ").append(sub.option().isNoLocal())
+                        .append(", retainHandling: ").append(sub.option().retainHandling())
+                        .append(", isRetainAsPublished: ").append(sub.option().isRetainAsPublished());
                   }
                   break;
                case SUBACK:
@@ -334,12 +358,16 @@ public class MQTTUtil {
                case PUBREC:
                case PUBREL:
                case PUBCOMP:
-                  MqttPubReplyMessageVariableHeader pubReplyVariableHeader = (MqttPubReplyMessageVariableHeader) message.variableHeader();
-                  log.append(" reasonCode=").append(formatByte(pubReplyVariableHeader.reasonCode()));
+                  if (version == MQTTVersion.MQTT_5) {
+                     MqttPubReplyMessageVariableHeader pubReplyVariableHeader = (MqttPubReplyMessageVariableHeader) message.variableHeader();
+                     log.append(" reasonCode=").append(formatByte(pubReplyVariableHeader.reasonCode()));
+                  }
                   break;
                case DISCONNECT:
-                  MqttReasonCodeAndPropertiesVariableHeader disconnectVariableHeader = (MqttReasonCodeAndPropertiesVariableHeader) message.variableHeader();
-                  log.append(" reasonCode=").append(formatByte(disconnectVariableHeader.reasonCode()));
+                  if (version == MQTTVersion.MQTT_5) {
+                     MqttReasonCodeAndPropertiesVariableHeader disconnectVariableHeader = (MqttReasonCodeAndPropertiesVariableHeader) message.variableHeader();
+                     log.append(" reasonCode=").append(formatByte(disconnectVariableHeader.reasonCode()));
+                  }
                   break;
             }
 

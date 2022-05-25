@@ -337,7 +337,7 @@ public final class ActiveMQDefaultConfiguration {
    private static int DEFAULT_BRIDGE_CONFIRMATION_WINDOW_SIZE = 1024 * 1024 * 10;
 
    // Producer flow control
-   private static int DEFAULT_BRIDGE_PRODUCER_WINDOW_SIZE = -1;
+   private static int DEFAULT_BRIDGE_PRODUCER_WINDOW_SIZE = 1024 * 1024;
 
    // Upon reconnection this configures the number of time the same node on the topology will be retried before resetting the server locator and using the initial connectors
    private static int DEFAULT_BRIDGE_CONNECT_SAME_NODE = 10;
@@ -651,6 +651,8 @@ public final class ActiveMQDefaultConfiguration {
 
    // If SESSION-notifications should be suppressed or not
    public static boolean DEFAULT_SUPPRESS_SESSION_NOTIFICATIONS = false;
+
+   public static final long DEFAULT_EMBEDDED_WEB_SERVER_RESTART_TIMEOUT = 5000;
 
    /**
     * If true then the ActiveMQ Artemis Server will make use of any Protocol Managers that are in available on the classpath. If false then only the core protocol will be available, unless in Embedded mode where users can inject their own Protocol Managers.
@@ -1784,6 +1786,10 @@ public final class ActiveMQDefaultConfiguration {
 
    public static boolean getDefaultSuppressSessionNotifications() {
       return DEFAULT_SUPPRESS_SESSION_NOTIFICATIONS;
+   }
+
+   public static long getDefaultEmbeddedWebServerRestartTimeout() {
+      return DEFAULT_EMBEDDED_WEB_SERVER_RESTART_TIMEOUT;
    }
 
 }

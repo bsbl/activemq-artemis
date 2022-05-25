@@ -39,14 +39,15 @@ import org.apache.activemq.artemis.core.protocol.openwire.OpenWireConnection;
 import org.apache.activemq.artemis.core.protocol.openwire.OpenWireMessageConverter;
 import org.apache.activemq.artemis.core.protocol.openwire.OpenWireProtocolManager;
 import org.apache.activemq.artemis.core.protocol.openwire.util.OpenWireUtil;
+import org.apache.activemq.artemis.core.server.ActiveMQMessageBundle;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
-import org.apache.activemq.artemis.core.server.BindingQueryResult;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.QueueQueryResult;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
 import org.apache.activemq.artemis.core.server.ServerSession;
 import org.apache.activemq.artemis.core.server.SlowConsumerDetectionListener;
+import org.apache.activemq.artemis.core.server.impl.AddressInfo;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.reader.MessageUtil;
 import org.apache.activemq.artemis.spi.core.protocol.SessionCallback;
@@ -225,23 +226,23 @@ public class AMQSession implements SessionCallback {
    }
 
    private boolean checkAutoCreateQueue(SimpleString queueName, boolean isTemporary, String filter) throws Exception {
+
       boolean hasQueue = true;
       if (!connection.containsKnownDestination(queueName)) {
-
-         BindingQueryResult bindingQuery = server.bindingQuery(queueName);
-         QueueQueryResult queueBinding = server.queueQuery(queueName);
+         QueueQueryResult queueQuery = server.queueQuery(queueName);
 
          try {
-            if (!queueBinding.isExists()) {
-               if (bindingQuery.isAutoCreateQueues()) {
+            if (!queueQuery.isExists()) {
+               if (queueQuery.isAutoCreateQueues()) {
                   SimpleString queueNameToUse = queueName;
                   SimpleString addressToUse = queueName;
                   RoutingType routingTypeToUse = RoutingType.ANYCAST;
                   if (CompositeAddress.isFullyQualified(queueName.toString())) {
                      addressToUse = CompositeAddress.extractAddressName(queueName);
                      queueNameToUse = CompositeAddress.extractQueueName(queueName);
-                     if (bindingQuery.getAddressInfo() != null) {
-                        routingTypeToUse = bindingQuery.getAddressInfo().getRoutingType();
+                     AddressInfo addressInfo = server.getAddressInfo(addressToUse);
+                     if (addressInfo != null) {
+                        routingTypeToUse = addressInfo.getRoutingType();
                      } else {
                         AddressSettings as = server.getAddressSettingsRepository().getMatch(addressToUse.toString());
                         routingTypeToUse = as.getDefaultAddressRoutingType();
@@ -250,6 +251,10 @@ public class AMQSession implements SessionCallback {
                   coreSession.createQueue(new QueueConfiguration(queueNameToUse).setAddress(addressToUse).setRoutingType(routingTypeToUse).setTemporary(isTemporary).setAutoCreated(true).setFilterString(filter));
                   connection.addKnownDestination(queueName);
                } else {
+                  if (server.getAddressInfo(queueName) == null) {
+                     //Address does not exist and will not get autocreated
+                     throw ActiveMQMessageBundle.BUNDLE.noSuchQueue(queueName);
+                  }
                   hasQueue = false;
                }
             }
@@ -257,7 +262,6 @@ public class AMQSession implements SessionCallback {
             // In case another thread created the queue before us but after we did the binding query
             hasQueue = true;
          }
-
       }
       return hasQueue;
    }

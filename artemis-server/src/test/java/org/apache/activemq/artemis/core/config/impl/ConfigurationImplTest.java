@@ -20,8 +20,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,6 +43,7 @@ import org.apache.activemq.artemis.core.server.JournalType;
 import org.apache.activemq.artemis.core.server.cluster.impl.MessageLoadBalancingType;
 import org.apache.activemq.artemis.core.server.plugin.impl.LoggingActiveMQServerPlugin;
 import org.apache.activemq.artemis.core.server.routing.KeyType;
+import org.apache.activemq.artemis.core.server.routing.policies.ConsistentHashModuloPolicy;
 import org.apache.activemq.artemis.core.settings.impl.ResourceLimitSettings;
 import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
 import org.apache.activemq.artemis.utils.RandomUtil;
@@ -605,6 +609,35 @@ public class ConfigurationImplTest extends ActiveMQTestBase {
    }
 
    @Test
+   public void testSetConnectionRoutersPolicyConfiguration() throws Throwable {
+      ConfigurationImpl configuration = new ConfigurationImpl();
+
+      Properties insertionOrderedProperties = new Properties() {
+         final LinkedHashMap<Object, Object> orderedMap = new LinkedHashMap<>();
+
+         @Override
+         public Object put(Object key, Object value) {
+            return orderedMap.put(key.toString(), value.toString());
+         }
+
+         @Override
+         public Set<Map.Entry<Object, Object>> entrySet() {
+            return orderedMap.entrySet();
+         }
+      };
+      insertionOrderedProperties.put("connectionRouters.autoShard.localTargetFilter", "NULL|$STATEFUL_SET_ORDINAL");
+      insertionOrderedProperties.put("connectionRouters.autoShard.keyType", KeyType.CLIENT_ID);
+      insertionOrderedProperties.put("connectionRouters.autoShard.policyConfiguration", ConsistentHashModuloPolicy.NAME);
+      insertionOrderedProperties.put("connectionRouters.autoShard.policyConfiguration.properties." + ConsistentHashModuloPolicy.MODULO, 2);
+
+      configuration.parsePrefixedProperties(insertionOrderedProperties, null);
+
+      Assert.assertEquals(1, configuration.getConnectionRouters().size());
+      Assert.assertEquals(KeyType.CLIENT_ID, configuration.getConnectionRouters().get(0).getKeyType());
+      Assert.assertEquals("2", configuration.getConnectionRouters().get(0).getPolicyConfiguration().getProperties().get(ConsistentHashModuloPolicy.MODULO));
+   }
+
+   @Test
    public void testSetNestedPropertyOnCollections() throws Throwable {
       ConfigurationImpl configuration = new ConfigurationImpl();
 
@@ -689,22 +722,41 @@ public class ConfigurationImplTest extends ActiveMQTestBase {
       Assert.assertEquals("TF", configuration.getConnectionRouters().get(0).getKeyFilter());
    }
 
+
+   @Test
+   public void testAddressViaProperties() throws Throwable {
+      ConfigurationImpl configuration = new ConfigurationImpl();
+
+      Properties properties = new Properties();
+
+      properties.put("addressConfigurations.\"LB.TEST\".queueConfigs.\"LB.TEST\".routingType", "ANYCAST");
+      properties.put("addressConfigurations.\"LB.TEST\".queueConfigs.\"LB.TEST\".durable", "false");
+
+      configuration.parsePrefixedProperties(properties, null);
+
+      Assert.assertEquals(1, configuration.getAddressConfigurations().size());
+      Assert.assertEquals(1, configuration.getAddressConfigurations().get(0).getQueueConfigs().size());
+      Assert.assertEquals(SimpleString.toSimpleString("LB.TEST"), configuration.getAddressConfigurations().get(0).getQueueConfigs().get(0).getAddress());
+      Assert.assertEquals(false, configuration.getAddressConfigurations().get(0).getQueueConfigs().get(0).isDurable());
+   }
+
+
    @Test
    public void testAddressSettingsViaProperties() throws Throwable {
       ConfigurationImpl configuration = new ConfigurationImpl();
 
       Properties properties = new Properties();
 
-      properties.put("addressesSettings.#.expiryAddress", "sharedExpiry");
-      properties.put("addressesSettings.NeedToTrackExpired.expiryAddress", "important");
-      properties.put("addressesSettings.\"Name.With.Dots\".expiryAddress", "moreImportant");
+      properties.put("addressesSettings.#.expiryAddress", "sharedExpiry"); // verify @Deprecation double plural still works
+      properties.put("addressSettings.NeedToTrackExpired.expiryAddress", "important");
+      properties.put("addressSettings.\"Name.With.Dots\".expiryAddress", "moreImportant");
 
       configuration.parsePrefixedProperties(properties, null);
 
-      Assert.assertEquals(3, configuration.getAddressesSettings().size());
-      Assert.assertEquals(SimpleString.toSimpleString("sharedExpiry"), configuration.getAddressesSettings().get("#").getExpiryAddress());
-      Assert.assertEquals(SimpleString.toSimpleString("important"), configuration.getAddressesSettings().get("NeedToTrackExpired").getExpiryAddress());
-      Assert.assertEquals(SimpleString.toSimpleString("moreImportant"), configuration.getAddressesSettings().get("Name.With.Dots").getExpiryAddress());
+      Assert.assertEquals(3, configuration.getAddressSettings().size());
+      Assert.assertEquals(SimpleString.toSimpleString("sharedExpiry"), configuration.getAddressSettings().get("#").getExpiryAddress());
+      Assert.assertEquals(SimpleString.toSimpleString("important"), configuration.getAddressSettings().get("NeedToTrackExpired").getExpiryAddress());
+      Assert.assertEquals(SimpleString.toSimpleString("moreImportant"), configuration.getAddressSettings().get("Name.With.Dots").getExpiryAddress());
    }
 
    @Test
@@ -877,10 +929,10 @@ public class ConfigurationImplTest extends ActiveMQTestBase {
 
       configuration.parsePrefixedProperties(properties, null);
 
-      Assert.assertEquals(3, configuration.getAddressesSettings().size());
-      Assert.assertEquals(SimpleString.toSimpleString("sharedExpiry"), configuration.getAddressesSettings().get("#").getExpiryAddress());
-      Assert.assertEquals(SimpleString.toSimpleString("important"), configuration.getAddressesSettings().get("NeedToTrackExpired").getExpiryAddress());
-      Assert.assertEquals(SimpleString.toSimpleString("moreImportant"), configuration.getAddressesSettings().get("Name.With.Dots").getExpiryAddress());
+      Assert.assertEquals(3, configuration.getAddressSettings().size());
+      Assert.assertEquals(SimpleString.toSimpleString("sharedExpiry"), configuration.getAddressSettings().get("#").getExpiryAddress());
+      Assert.assertEquals(SimpleString.toSimpleString("important"), configuration.getAddressSettings().get("NeedToTrackExpired").getExpiryAddress());
+      Assert.assertEquals(SimpleString.toSimpleString("moreImportant"), configuration.getAddressSettings().get("Name.With.Dots").getExpiryAddress());
    }
 
    /**
