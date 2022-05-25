@@ -30,6 +30,7 @@ import org.junit.runners.Suite.SuiteClasses;
    EtcdDistributedLockTest.class,
    EtcdConfigTest.class
 })
+// This code is derived from https://github.com/IBM/etcd-java/blob/main/src/test/java/com/ibm/etcd/client/EtcdTestSuite.java
 public class EtcdTestSuite {
 
     static Process etcdProcess, etcdTlsProcess, etcdTlsCaProcess;
