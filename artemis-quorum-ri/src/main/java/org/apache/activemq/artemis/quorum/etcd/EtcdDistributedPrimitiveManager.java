@@ -45,6 +45,10 @@ import org.jboss.logging.Logger;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
+/*
+ * https://issues.apache.org/jira/browse/ARTEMIS-2716
+ *
+ */
 public class EtcdDistributedPrimitiveManager implements DistributedPrimitiveManager {
 
    private static final Logger logger = Logger.getLogger(EtcdDistributedPrimitiveManager.class);
