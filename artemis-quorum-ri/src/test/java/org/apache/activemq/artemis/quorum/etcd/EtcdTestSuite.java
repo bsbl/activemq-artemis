@@ -27,8 +27,8 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-   EtcdDistributedLockTest.class,
-   EtcdConfigTest.class
+   EtcdDistributedLockTestCase.class,
+   EtcdConfigTestCase.class
 })
 // This code is derived from https://github.com/IBM/etcd-java/blob/main/src/test/java/com/ibm/etcd/client/EtcdTestSuite.java
 public class EtcdTestSuite {

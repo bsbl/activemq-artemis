@@ -25,7 +25,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class EtcdConfigTest {
+public class EtcdConfigTestCase {
 
    private final ArrayList<AutoCloseable> closeables = new ArrayList<>();
 

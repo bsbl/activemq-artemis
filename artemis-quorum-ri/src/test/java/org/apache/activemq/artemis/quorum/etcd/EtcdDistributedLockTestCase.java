@@ -36,7 +36,7 @@ import static org.apache.activemq.artemis.quorum.etcd.EtcdDistributedPrimitiveMa
 import static org.apache.activemq.artemis.quorum.etcd.EtcdDistributedPrimitiveManager.Config.ETCD_LEASE_TTL_PARAM;
 
 
-public class EtcdDistributedLockTest extends DistributedLockTest {
+public class EtcdDistributedLockTestCase extends DistributedLockTest {
 
    private static EtcdProxyTest proxy;
 
