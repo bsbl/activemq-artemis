@@ -37,8 +37,9 @@ public class EtcdTestSuite {
 
     static final String etcdCommand;
     static {
-         String etcd = System.getenv("ETCD_CMD");
-         etcdCommand = etcd != null ? etcd : "etcd";
+        final String etcd = System.getenv("ETCD_CMD");
+        System.out.println("ETCD_CMD env: " + etcd);
+        etcdCommand = etcd != null ? etcd : "etcd";
     }
 
     static final String clientKey = EtcdTestSuite.class.getResource("/client.key").getFile();

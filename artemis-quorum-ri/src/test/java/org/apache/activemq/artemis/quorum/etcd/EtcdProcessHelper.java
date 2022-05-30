@@ -17,6 +17,7 @@
 package org.apache.activemq.artemis.quorum.etcd;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -69,7 +70,10 @@ public class EtcdProcessHelper {
          cmd.add(EtcdTestSuite.etcdCommand);
          cmd.addAll(Arrays.asList(cmdline));
          System.out.println(cmd.stream().collect(Collectors.joining(" ")));
-         Process etcdProcess = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+         Process etcdProcess = new ProcessBuilder(cmd)
+            .inheritIO()
+            .redirectErrorStream(true)
+            .start();
          waitForStartup(etcdProcess);
          if (!etcdProcess.isAlive()) {
             return null;
