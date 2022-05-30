@@ -26,7 +26,7 @@ if [ ! -d $INSTALL_DIR ] ; then
 fi
 echo "Extract Etcd archive etcd-${ETCD_VERSION}-linux-amd64.tar.gz into ${INSTALL_DIR}"
 tar xzf etcd-${ETCD_VERSION}-linux-amd64.tar.gz -C "${INSTALL_DIR}" --strip-components=1
-${INSTALL_DIR}/etcdctl version
+${INSTALL_DIR}/etcdctl
 if [ $? -ne 0 ] ; then
   echo "Something went wrong during the Etcd setup"
   exit 3
